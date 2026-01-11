@@ -1,0 +1,36 @@
+# StockAI - Korean Stock Analysis System
+# Python 3.9+
+
+# Core Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Web Requests & Scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Progress Bar
+tqdm>=4.65.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Visualization
+plotly>=5.15.0
+
+# Dashboard
+streamlit>=1.28.0
+
+# AI Integration
+google-generativeai>=0.3.0
+
+# News Search
+duckduckgo-search>=4.0.0
+
+# Article Parsing
+newspaper3k>=0.2.8
+lxml_html_clean>=0.1.0
+
+# Technical Analysis (optional)
+ta>=0.10.2

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Optimizer</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Dividend Optimizer</div>
+        <div class="nav-links">
+            <a href="/" class="active">Home</a>
+            <a href="/app">Dashboard</a>
+            <a href="/dividend">Optimizer</a>
+        </div>
+    </nav>
+
+    <main class="hero">
+        <div class="hero-content">
+            <h1>AI-Powered Dividend Portfolio Optimizer</h1>
+            <p class="subtitle">Set your monthly income goal. We build the portfolio.</p>
+            
+            <div class="features">
+                <div class="feature-card">
+                    <h3>10 Investment Themes</h3>
+                    <p>From monthly income to dividend growth, choose your strategy</p>
+                </div>
+                <div class="feature-card">
+                    <h3>3 Risk Tiers</h3>
+                    <p>Defensive, Balanced, or Aggressive - match your risk tolerance</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Smart Optimization</h3>
+                    <p>Risk Parity, Max Sharpe, and more optimization methods</p>
+                </div>
+            </div>
+
+            <div class="cta-buttons">
+                <a href="/dividend" class="btn btn-primary">Start Optimizing</a>
+                <a href="/app" class="btn btn-secondary">View Dashboard</a>
+            </div>
+        </div>
+    </main>
+
+    <section class="themes-preview">
+        <h2>Available Themes</h2>
+        <div id="themes-grid" class="themes-grid">
+            <p class="loading">Loading themes...</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>Dividend Optimizer - For educational purposes only. Not financial advice.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/dividend/themes')
+                .then(res => res.json())
+                .then(themes => {
+                    const grid = document.getElementById('themes-grid');
+                    if (!themes || themes.error) {
+                        grid.innerHTML = '<p>Failed to load themes</p>';
+                        return;
+                    }
+                    grid.innerHTML = themes.map(t => `
+                        <div class="theme-card">
+                            <h4>${t.title || t.id}</h4>
+                            <p>${t.subtitle || ''}</p>
+                            <span class="tiers">${(t.tiers || []).length} tiers</span>
+                        </div>
+                    `).join('');
+                })
+                .catch(() => {
+                    document.getElementById('themes-grid').innerHTML = '<p>Failed to load themes</p>';
+                });
+        });
+    </script>
+</body>
+</html>

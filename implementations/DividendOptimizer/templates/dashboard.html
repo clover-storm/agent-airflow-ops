@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Dividend Optimizer</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Dividend Optimizer</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/app" class="active">Dashboard</a>
+            <a href="/dividend">Optimizer</a>
+        </div>
+    </nav>
+
+    <main class="dashboard">
+        <h1>Portfolio Dashboard</h1>
+
+        <section class="dashboard-controls">
+            <div class="control-group">
+                <label for="ticker-input">Ticker Analysis</label>
+                <input type="text" id="ticker-input" placeholder="e.g., SCHD" value="SCHD">
+                <button id="analyze-btn" class="btn btn-primary">Analyze</button>
+            </div>
+        </section>
+
+        <section class="metrics-grid">
+            <div class="metric-card" id="risk-metrics">
+                <h3>Risk Metrics</h3>
+                <div class="metric-content">
+                    <p class="loading">Enter a ticker to analyze</p>
+                </div>
+            </div>
+            <div class="metric-card" id="sustainability-metrics">
+                <h3>Dividend Sustainability</h3>
+                <div class="metric-content">
+                    <p class="loading">Enter a ticker to analyze</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="themes-section">
+            <h2>Available Themes</h2>
+            <div id="themes-list" class="themes-list">
+                <p class="loading">Loading...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Dividend Optimizer - For educational purposes only.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load themes
+            fetch('/api/dividend/themes')
+                .then(res => res.json())
+                .then(themes => {
+                    const list = document.getElementById('themes-list');
+                    if (!themes || themes.error) {
+                        list.innerHTML = '<p>Failed to load</p>';
+                        return;
+                    }
+                    list.innerHTML = `<table class="data-table">
+                        <thead><tr><th>Theme</th><th>Description</th><th>Tiers</th></tr></thead>
+                        <tbody>
+                        ${themes.map(t => `<tr>
+                            <td><strong>${t.title || t.id}</strong></td>
+                            <td>${t.subtitle || '-'}</td>
+                            <td>${(t.tiers || []).join(', ')}</td>
+                        </tr>`).join('')}
+                        </tbody>
+                    </table>`;
+                })
+                .catch(() => {
+                    document.getElementById('themes-list').innerHTML = '<p>Failed to load</p>';
+                });
+
+            // Analyze ticker
+            document.getElementById('analyze-btn').addEventListener('click', function() {
+                const ticker = document.getElementById('ticker-input').value.toUpperCase();
+                if (!ticker) return;
+
+                // Risk metrics
+                document.querySelector('#risk-metrics .metric-content').innerHTML = '<p class="loading">Loading...</p>';
+                fetch(`/api/dividend/risk-metrics/${ticker}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            document.querySelector('#risk-metrics .metric-content').innerHTML = `<p class="error">${data.error}</p>`;
+                            return;
+                        }
+                        document.querySelector('#risk-metrics .metric-content').innerHTML = `
+                            <dl>
+                                <dt>Volatility (Annual)</dt><dd>${data.volatility_annual ? (data.volatility_annual * 100).toFixed(1) + '%' : 'N/A'}</dd>
+                                <dt>Max Drawdown</dt><dd>${data.max_drawdown ? (data.max_drawdown * 100).toFixed(1) + '%' : 'N/A'}</dd>
+                                <dt>Sharpe Ratio</dt><dd>${data.sharpe_ratio || 'N/A'}</dd>
+                                <dt>Risk Grade</dt><dd class="grade grade-${(data.risk_grade || 'na').toLowerCase()}">${data.risk_grade || 'N/A'}</dd>
+                            </dl>
+                        `;
+                    })
+                    .catch(() => {
+                        document.querySelector('#risk-metrics .metric-content').innerHTML = '<p class="error">Failed to load</p>';
+                    });
+
+                // Sustainability
+                document.querySelector('#sustainability-metrics .metric-content').innerHTML = '<p class="loading">Loading...</p>';
+                fetch(`/api/dividend/sustainability/${ticker}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            document.querySelector('#sustainability-metrics .metric-content').innerHTML = `<p class="error">${data.error}</p>`;
+                            return;
+                        }
+                        const safety = data.safety || {};
+                        document.querySelector('#sustainability-metrics .metric-content').innerHTML = `
+                            <dl>
+                                <dt>Payout Ratio</dt><dd>${data.payout_ratio ? (data.payout_ratio * 100).toFixed(0) + '%' : 'N/A'}</dd>
+                                <dt>5Y Dividend Growth</dt><dd>${data.dividend_growth_5y ? (data.dividend_growth_5y * 100).toFixed(1) + '%' : 'N/A'}</dd>
+                                <dt>Dividend Streak</dt><dd>${data.dividend_streak || 0} years</dd>
+                                <dt>Safety Score</dt><dd>${safety.safety_score || 'N/A'}/100</dd>
+                                <dt>Safety Grade</dt><dd class="grade grade-${(safety.safety_grade || 'na').toLowerCase()}">${safety.safety_grade || 'N/A'}</dd>
+                            </dl>
+                        `;
+                    })
+                    .catch(() => {
+                        document.querySelector('#sustainability-metrics .metric-content').innerHTML = '<p class="error">Failed to load</p>';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>

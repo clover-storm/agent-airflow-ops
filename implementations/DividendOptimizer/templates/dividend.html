@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimizer - Dividend Optimizer</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        /* Additional styles for dividend page */
+        .optimizer {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .optimizer-form {
+            background: #1e1e2e;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #3a3a4a;
+            border-radius: 8px;
+            background: #2a2a3a;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 18px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .btn-secondary {
+            background: #3a3a4a;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #4a4a5a;
+        }
+
+        .results {
+            background: #1e1e2e;
+            padding: 24px;
+            border-radius: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .tier-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tier-tab {
+            padding: 12px 24px;
+            border: none;
+            background: #2a2a3a;
+            color: #a0a0a0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tier-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .tier-tab:hover:not(.active) {
+            background: #3a3a4a;
+        }
+
+        .portfolio-summary {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #2a2a4a, #1a1a2a);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #3a3a5a;
+        }
+
+        .summary-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .summary-card p {
+            margin: 0 0 16px 0;
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        .risk-label {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #3a5a3a;
+            color: #4ade80;
+            border-radius: 16px;
+            font-size: 12px;
+        }
+
+        .summary-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .metric {
+            background: #2a2a3a;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .metric .label {
+            display: block;
+            color: #a0a0a0;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .metric .value {
+            display: block;
+            color: #4ade80;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #3a3a4a;
+        }
+
+        .data-table th {
+            background: #2a2a3a;
+            color: #a0a0a0;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .data-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .data-table tbody tr:hover {
+            background: #2a2a4a;
+        }
+
+        .data-table tbody tr.selected {
+            background: #3a3a5a;
+        }
+
+        .chart-section {
+            margin-top: 24px;
+        }
+
+        .chart-section h3 {
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        .chart-container {
+            background: #2a2a3a;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .bar-chart {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 200px;
+            padding: 20px 0;
+        }
+
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bar {
+            width: 30px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s;
+            min-height: 10px;
+        }
+
+        .bar:hover {
+            background: linear-gradient(to top, #8198ff, #9a6bbd);
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #a0a0a0;
+            white-space: nowrap;
+        }
+
+        .bar-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+
+        /* Stock Detail Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: #1e1e2e;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #3a3a4a;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #fff;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #a0a0a0;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .detail-card {
+            background: #2a2a3a;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .detail-card h5 {
+            margin: 0 0 12px 0;
+            color: #a0a0a0;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .detail-item .label {
+            color: #808080;
+        }
+
+        .detail-item .value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .detail-item .value.positive {
+            color: #4ade80;
+        }
+
+        .detail-item .value.negative {
+            color: #ef4444;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-weight: bold;
+        }
+
+        .grade-badge.A {
+            background: #1a4a1a;
+            color: #4ade80;
+        }
+
+        .grade-badge.B {
+            background: #4a4a1a;
+            color: #facc15;
+        }
+
+        .grade-badge.C {
+            background: #4a1a1a;
+            color: #ef4444;
+        }
+
+        /* Backtest Section */
+        .backtest-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #3a3a4a;
+        }
+
+        .backtest-form {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .backtest-form .form-group {
+            min-width: 150px;
+        }
+
+        .backtest-results {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .backtest-metric {
+            background: #2a2a3a;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .backtest-metric .label {
+            display: block;
+            color: #a0a0a0;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .backtest-metric .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .backtest-metric .value.positive {
+            color: #4ade80;
+        }
+
+        .backtest-metric .value.negative {
+            color: #ef4444;
+        }
+
+        #backtest-chart {
+            width: 100%;
+            height: 300px;
+            background: #2a2a3a;
+            border-radius: 8px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #3a3a4a;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Price Update Flash */
+        .price-up {
+            animation: flashGreen 0.5s;
+        }
+
+        .price-down {
+            animation: flashRed 0.5s;
+        }
+
+        @keyframes flashGreen {
+            0%, 100% { background: transparent; }
+            50% { background: rgba(74, 222, 128, 0.2); }
+        }
+
+        @keyframes flashRed {
+            0%, 100% { background: transparent; }
+            50% { background: rgba(239, 68, 68, 0.2); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .portfolio-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .backtest-results {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Dividend Optimizer</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/app">Dashboard</a>
+            <a href="/dividend" class="active">Optimizer</a>
+        </div>
+    </nav>
+
+    <main class="optimizer">
+        <h1>Portfolio Optimizer</h1>
+
+        <section class="optimizer-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="theme-select">Investment Theme</label>
+                    <select id="theme-select">
+                        <option value="">Loading themes...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="target-monthly">Target Monthly (KRW)</label>
+                    <input type="number" id="target-monthly" value="1000000" step="100000">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fx-rate">USD/KRW Rate</label>
+                    <input type="number" id="fx-rate" value="1420" step="10">
+                </div>
+                <div class="form-group">
+                    <label for="tax-rate">Tax Rate (%)</label>
+                    <input type="number" id="tax-rate" value="15.4" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="optimize-mode">Optimization Mode</label>
+                    <select id="optimize-mode">
+                        <option value="greedy">Greedy (Fast)</option>
+                        <option value="risk_parity">Risk Parity</option>
+                        <option value="max_sharpe">Max Sharpe</option>
+                    </select>
+                </div>
+            </div>
+            <button id="generate-btn" class="btn btn-primary btn-large">Generate Portfolios</button>
+        </section>
+
+        <section id="results" class="results hidden">
+            <h2>Results</h2>
+            <div class="tier-tabs">
+                <button class="tier-tab active" data-tier="defensive">Defensive</button>
+                <button class="tier-tab" data-tier="balanced">Balanced</button>
+                <button class="tier-tab" data-tier="aggressive">Aggressive</button>
+            </div>
+            <div id="portfolio-view" class="portfolio-view">
+                <p class="loading">Select a tier to view</p>
+            </div>
+
+            <!-- Backtest Section -->
+            <div class="backtest-section">
+                <h3>Backtest</h3>
+                <div class="backtest-form">
+                    <div class="form-group">
+                        <label for="backtest-period">Period</label>
+                        <select id="backtest-period">
+                            <option value="1y">1 Year</option>
+                            <option value="3y" selected>3 Years</option>
+                            <option value="5y">5 Years</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="backtest-capital">Initial Capital (USD)</label>
+                        <input type="number" id="backtest-capital" value="100000" step="10000">
+                    </div>
+                    <button id="backtest-btn" class="btn btn-secondary">Run Backtest</button>
+                </div>
+                <div id="backtest-results-container" class="hidden">
+                    <div id="backtest-metrics" class="backtest-results"></div>
+                    <div id="backtest-chart"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Stock Detail Modal -->
+    <div id="stock-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Stock Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-loading" class="loading"><div class="spinner"></div> Loading...</div>
+                <div id="modal-content" class="hidden">
+                    <div class="detail-grid">
+                        <div class="detail-card">
+                            <h5>Risk Metrics</h5>
+                            <div id="risk-metrics"></div>
+                        </div>
+                        <div class="detail-card">
+                            <h5>Dividend Sustainability</h5>
+                            <div id="sustainability-metrics"></div>
+                        </div>
+                    </div>
+                    <div id="stock-chart-container" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Dividend Optimizer - For educational purposes only.</p>
+    </footer>
+
+    <script>
+        // Global state
+        let portfolioData = {};
+        let currentTier = 'defensive';
+        let stockChart = null;
+        let backtestChart = null;
+        let priceUpdateInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadThemes();
+            setupEventListeners();
+        });
+
+        // Load themes
+        function loadThemes() {
+            fetch('/api/dividend/themes')
+                .then(res => res.json())
+                .then(themes => {
+                    const select = document.getElementById('theme-select');
+                    if (!themes || themes.error) {
+                        select.innerHTML = '<option value="">Failed to load</option>';
+                        return;
+                    }
+                    select.innerHTML = themes.map(t =>
+                        `<option value="${t.id}">${t.title || t.id}</option>`
+                    ).join('');
+                })
+                .catch(() => {
+                    document.getElementById('theme-select').innerHTML = '<option value="">Failed to load</option>';
+                });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Generate portfolios button
+            document.getElementById('generate-btn').addEventListener('click', generatePortfolios);
+
+            // Tier tabs
+            document.querySelectorAll('.tier-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tier-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTier = this.dataset.tier;
+                    showTier(currentTier);
+                });
+            });
+
+            // Backtest button
+            document.getElementById('backtest-btn').addEventListener('click', runBacktest);
+
+            // Modal close on overlay click
+            document.getElementById('stock-modal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            // Escape key to close modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeModal();
+            });
+        }
+
+        // Generate portfolios
+        function generatePortfolios() {
+            const themeId = document.getElementById('theme-select').value;
+            const targetMonthly = parseFloat(document.getElementById('target-monthly').value);
+            const fxRate = parseFloat(document.getElementById('fx-rate').value);
+            const taxRate = parseFloat(document.getElementById('tax-rate').value);
+            const optimizeMode = document.getElementById('optimize-mode').value;
+
+            if (!themeId) {
+                alert('Please select a theme');
+                return;
+            }
+
+            const btn = document.getElementById('generate-btn');
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            btn.disabled = true;
+
+            fetch('/api/dividend/all-tiers', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    theme_id: themeId,
+                    target_monthly_krw: targetMonthly,
+                    fx_rate: fxRate,
+                    tax_rate: taxRate,
+                    optimize_mode: optimizeMode
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                portfolioData = data;
+                document.getElementById('results').classList.remove('hidden');
+                showTier('defensive');
+
+                // Start price updates
+                startPriceUpdates();
+
+                btn.textContent = 'Generate Portfolios';
+                btn.disabled = false;
+            })
+            .catch(err => {
+                alert('Failed to generate portfolios: ' + err.message);
+                btn.textContent = 'Generate Portfolios';
+                btn.disabled = false;
+            });
+        }
+
+        // Show tier data
+        function showTier(tier) {
+            currentTier = tier;
+            const data = portfolioData[tier];
+            const view = document.getElementById('portfolio-view');
+
+            if (!data) {
+                view.innerHTML = '<p class="error">No data available</p>';
+                return;
+            }
+
+            if (data.error) {
+                view.innerHTML = `<p class="error">${data.error}</p>`;
+                return;
+            }
+
+            const allocation = data.allocation || [];
+            const chartData = data.chart_data || [];
+            const maxValue = Math.max(...chartData, 1);
+
+            view.innerHTML = `
+                <div class="portfolio-summary">
+                    <div class="summary-card">
+                        <h4>${data.title || tier}</h4>
+                        <p>${data.one_liner || ''}</p>
+                        <span class="risk-label">${data.risk_label || ''}</span>
+                    </div>
+                    <div class="summary-metrics">
+                        <div class="metric">
+                            <span class="label">Required Capital</span>
+                            <span class="value">${formatKRW(data.required_capital_krw)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="label">Expected Monthly</span>
+                            <span class="value">${formatKRW(data.expected_monthly_krw)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="label">Portfolio Yield</span>
+                            <span class="value">${data.portfolio_yield || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Allocation</h3>
+                <table class="data-table" id="allocation-table">
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Name</th>
+                            <th>Weight</th>
+                            <th>Shares</th>
+                            <th>Yield</th>
+                            <th>Price (USD)</th>
+                            <th>Amount (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${allocation.map(a => `
+                            <tr onclick="showStockDetail('${a.ticker}')" data-ticker="${a.ticker}">
+                                <td><strong>${a.ticker}</strong></td>
+                                <td>${a.name}</td>
+                                <td>${a.weight}%</td>
+                                <td>${a.shares}</td>
+                                <td>${a.yield}</td>
+                                <td class="price-cell" data-ticker="${a.ticker}">$${a.price?.toFixed(2) || '-'}</td>
+                                <td>$${(a.amount_usd || 0).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div class="chart-section">
+                    <h3>Monthly Cash Flow (KRW)</h3>
+                    <div class="chart-container">
+                        <div class="bar-chart">
+                            ${chartData.map((v, i) => `
+                                <div class="bar-wrapper">
+                                    <div class="bar" style="height: ${Math.max((v / maxValue) * 100, 5)}%">
+                                        <span class="bar-value">${formatShortKRW(v)}</span>
+                                    </div>
+                                    <span class="bar-label">${i + 1}월</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show stock detail modal
+        function showStockDetail(ticker) {
+            const modal = document.getElementById('stock-modal');
+            const title = document.getElementById('modal-title');
+            const loading = document.getElementById('modal-loading');
+            const content = document.getElementById('modal-content');
+
+            modal.classList.remove('hidden');
+            title.textContent = `${ticker} Details`;
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+
+            // Fetch risk metrics and sustainability in parallel
+            Promise.all([
+                fetch(`/api/dividend/risk-metrics/${ticker}`).then(r => r.json()),
+                fetch(`/api/dividend/sustainability/${ticker}`).then(r => r.json())
+            ])
+            .then(([risk, sustainability]) => {
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+
+                renderRiskMetrics(risk);
+                renderSustainability(sustainability);
+                loadStockChart(ticker);
+            })
+            .catch(err => {
+                loading.innerHTML = `<p class="error">Failed to load: ${err.message}</p>`;
+            });
+        }
+
+        // Render risk metrics
+        function renderRiskMetrics(data) {
+            const container = document.getElementById('risk-metrics');
+
+            if (data.error) {
+                container.innerHTML = `<p class="error">${data.error}</p>`;
+                return;
+            }
+
+            const gradeClass = data.risk_grade === 'A' ? 'A' : (data.risk_grade === 'B' ? 'B' : 'C');
+
+            container.innerHTML = `
+                <div class="detail-item">
+                    <span class="label">Risk Grade</span>
+                    <span class="grade-badge ${gradeClass}">${data.risk_grade || 'N/A'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Annual Volatility</span>
+                    <span class="value">${formatPercent(data.volatility_annual)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Max Drawdown</span>
+                    <span class="value negative">${formatPercent(data.max_drawdown)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Sharpe Ratio</span>
+                    <span class="value">${data.sharpe_ratio?.toFixed(2) || 'N/A'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Beta</span>
+                    <span class="value">${data.beta?.toFixed(2) || 'N/A'}</span>
+                </div>
+            `;
+        }
+
+        // Render sustainability metrics
+        function renderSustainability(data) {
+            const container = document.getElementById('sustainability-metrics');
+
+            if (data.error) {
+                container.innerHTML = `<p class="error">${data.error}</p>`;
+                return;
+            }
+
+            const gradeClass = data.sustainability_score >= 70 ? 'A' :
+                              (data.sustainability_score >= 50 ? 'B' : 'C');
+
+            container.innerHTML = `
+                <div class="detail-item">
+                    <span class="label">Sustainability Score</span>
+                    <span class="grade-badge ${gradeClass}">${data.sustainability_score?.toFixed(0) || 'N/A'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Years of Growth</span>
+                    <span class="value positive">${data.consecutive_years || 'N/A'} years</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">5Y Dividend Growth</span>
+                    <span class="value ${data.div_growth_5y > 0 ? 'positive' : 'negative'}">${formatPercent(data.div_growth_5y)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Payout Ratio</span>
+                    <span class="value">${formatPercent(data.payout_ratio)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Current Yield</span>
+                    <span class="value positive">${formatPercent(data.current_yield)}</span>
+                </div>
+            `;
+        }
+
+        // Load stock chart
+        function loadStockChart(ticker) {
+            const container = document.getElementById('stock-chart-container');
+            container.innerHTML = '<div class="spinner"></div>';
+
+            // Fetch 1 year of data via yfinance proxy
+            // Using direct API call for simplicity
+            fetch(`/api/dividend/stock-history/${ticker}?period=1y`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error || !data.prices || data.prices.length === 0) {
+                        container.innerHTML = '<p class="error">Chart data not available</p>';
+                        return;
+                    }
+
+                    container.innerHTML = '';
+
+                    if (stockChart) {
+                        stockChart.remove();
+                    }
+
+                    stockChart = LightweightCharts.createChart(container, {
+                        width: container.clientWidth,
+                        height: 300,
+                        layout: {
+                            background: { color: '#2a2a3a' },
+                            textColor: '#a0a0a0',
+                        },
+                        grid: {
+                            vertLines: { color: '#3a3a4a' },
+                            horzLines: { color: '#3a3a4a' },
+                        },
+                        crosshair: {
+                            mode: LightweightCharts.CrosshairMode.Normal,
+                        },
+                        timeScale: {
+                            borderColor: '#3a3a4a',
+                        },
+                    });
+
+                    const candleSeries = stockChart.addCandlestickSeries({
+                        upColor: '#4ade80',
+                        downColor: '#ef4444',
+                        borderUpColor: '#4ade80',
+                        borderDownColor: '#ef4444',
+                        wickUpColor: '#4ade80',
+                        wickDownColor: '#ef4444',
+                    });
+
+                    candleSeries.setData(data.prices);
+                    stockChart.timeScale().fitContent();
+                })
+                .catch(err => {
+                    container.innerHTML = '<p class="error">Failed to load chart</p>';
+                });
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('stock-modal').classList.add('hidden');
+            if (stockChart) {
+                stockChart.remove();
+                stockChart = null;
+            }
+        }
+
+        // Run backtest
+        function runBacktest() {
+            const data = portfolioData[currentTier];
+            if (!data || !data.allocation) {
+                alert('Please generate a portfolio first');
+                return;
+            }
+
+            const period = document.getElementById('backtest-period').value;
+            const capital = parseFloat(document.getElementById('backtest-capital').value);
+
+            // Calculate start date based on period
+            const today = new Date();
+            const years = parseInt(period);
+            const startDate = new Date(today.setFullYear(today.getFullYear() - years));
+            const startStr = startDate.toISOString().split('T')[0];
+
+            const btn = document.getElementById('backtest-btn');
+            btn.innerHTML = '<span class="spinner"></span> Running...';
+            btn.disabled = true;
+
+            const portfolio = data.allocation.map(a => ({
+                ticker: a.ticker,
+                weight: a.weight / 100
+            }));
+
+            fetch('/api/dividend/backtest', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    portfolio: portfolio,
+                    start_date: startStr,
+                    initial_capital: capital
+                })
+            })
+            .then(res => res.json())
+            .then(result => {
+                btn.textContent = 'Run Backtest';
+                btn.disabled = false;
+
+                if (result.error) {
+                    alert('Backtest failed: ' + result.error);
+                    return;
+                }
+
+                renderBacktestResults(result);
+            })
+            .catch(err => {
+                btn.textContent = 'Run Backtest';
+                btn.disabled = false;
+                alert('Backtest failed: ' + err.message);
+            });
+        }
+
+        // Render backtest results
+        function renderBacktestResults(result) {
+            const container = document.getElementById('backtest-results-container');
+            const metrics = document.getElementById('backtest-metrics');
+
+            container.classList.remove('hidden');
+
+            const totalReturnClass = result.total_return >= 0 ? 'positive' : 'negative';
+            const alphaClass = result.alpha >= 0 ? 'positive' : 'negative';
+
+            metrics.innerHTML = `
+                <div class="backtest-metric">
+                    <span class="label">Total Return</span>
+                    <span class="value ${totalReturnClass}">${formatPercent(result.total_return)}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">CAGR</span>
+                    <span class="value ${totalReturnClass}">${formatPercent(result.cagr)}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">Max Drawdown</span>
+                    <span class="value negative">${formatPercent(result.max_drawdown)}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">Sharpe Ratio</span>
+                    <span class="value">${result.sharpe_ratio?.toFixed(2) || 'N/A'}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">Volatility</span>
+                    <span class="value">${formatPercent(result.volatility)}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">Dividend Return</span>
+                    <span class="value positive">${formatPercent(result.dividend_return)}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">Benchmark (${result.benchmark})</span>
+                    <span class="value">${formatPercent(result.benchmark_return)}</span>
+                </div>
+                <div class="backtest-metric">
+                    <span class="label">Alpha</span>
+                    <span class="value ${alphaClass}">${formatPercent(result.alpha)}</span>
+                </div>
+            `;
+
+            // Render comparison text
+            const chartContainer = document.getElementById('backtest-chart');
+            chartContainer.innerHTML = `
+                <div style="padding: 20px; text-align: center;">
+                    <p style="color: #a0a0a0; margin-bottom: 16px;">
+                        Initial: <strong style="color: #fff;">$${result.initial_capital?.toLocaleString()}</strong>
+                        &rarr;
+                        Final: <strong style="color: #4ade80;">$${result.final_value?.toLocaleString()}</strong>
+                    </p>
+                    <p style="color: #a0a0a0;">
+                        Period: ${result.start_date} to ${result.end_date}
+                    </p>
+                </div>
+            `;
+        }
+
+        // Start price updates
+        function startPriceUpdates() {
+            if (priceUpdateInterval) {
+                clearInterval(priceUpdateInterval);
+            }
+
+            // Update every 30 seconds
+            priceUpdateInterval = setInterval(updatePrices, 30000);
+        }
+
+        // Update prices
+        function updatePrices() {
+            const data = portfolioData[currentTier];
+            if (!data || !data.allocation) return;
+
+            const tickers = data.allocation.map(a => a.ticker);
+
+            fetch('/api/dividend/realtime-prices', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ tickers: tickers })
+            })
+            .then(res => res.json())
+            .then(prices => {
+                for (const [ticker, priceData] of Object.entries(prices)) {
+                    const cell = document.querySelector(`.price-cell[data-ticker="${ticker}"]`);
+                    if (cell && priceData.price) {
+                        const oldPrice = parseFloat(cell.textContent.replace('$', ''));
+                        const newPrice = priceData.price;
+
+                        cell.textContent = `$${newPrice.toFixed(2)}`;
+
+                        // Flash animation
+                        cell.classList.remove('price-up', 'price-down');
+                        if (newPrice > oldPrice) {
+                            cell.classList.add('price-up');
+                        } else if (newPrice < oldPrice) {
+                            cell.classList.add('price-down');
+                        }
+                    }
+                }
+            })
+            .catch(() => {
+                // Silent fail for price updates
+            });
+        }
+
+        // Utility functions
+        function formatKRW(value) {
+            if (!value) return '0 KRW';
+            if (value >= 100000000) {
+                return (value / 100000000).toFixed(1) + '억원';
+            }
+            if (value >= 10000) {
+                return (value / 10000).toFixed(0) + '만원';
+            }
+            return value.toLocaleString() + '원';
+        }
+
+        function formatShortKRW(value) {
+            if (!value) return '0';
+            if (value >= 10000) {
+                return Math.round(value / 10000) + '만';
+            }
+            return value.toLocaleString();
+        }
+
+        function formatPercent(value) {
+            if (value === null || value === undefined) return 'N/A';
+            return (value * 100).toFixed(2) + '%';
+        }
+    </script>
+</body>
+</html>
