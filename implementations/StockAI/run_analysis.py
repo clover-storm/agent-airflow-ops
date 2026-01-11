@@ -107,20 +107,20 @@ def run_full_pipeline(quick_update: bool = False, skip_ai: bool = False, top_n: 
     results = {}
     
     # Step 1: 일별 시세 수집
-    logger.info("\n📊 Step 1/4: Collecting Daily Prices...")
+    logger.info("\n📊 Step 1/6: Collecting Daily Prices...")
     price_args = ['--update'] if quick_update else ['--days', '365']
     results['prices'] = run_script('create_complete_daily_prices.py', price_args, timeout=1200)
-    
+
     if not results['prices']:
         logger.error("Price collection failed. Aborting pipeline.")
         return results
-    
+
     # Step 2: 기관/외국인 수급 분석
-    logger.info("\n💰 Step 2/4: Analyzing Institutional Trends...")
+    logger.info("\n💰 Step 2/6: Analyzing Institutional Trends...")
     results['institutional'] = run_script('all_institutional_trend_data.py', timeout=900)
-    
+
     # Step 3: 파동 분석
-    logger.info("\n🌊 Step 3/4: Running Wave Analysis...")
+    logger.info("\n🌊 Step 3/6: Running Wave Analysis...")
     results['analysis'] = run_script('analysis2.py', timeout=300)
     
     if not results['analysis']:
@@ -129,13 +129,41 @@ def run_full_pipeline(quick_update: bool = False, skip_ai: bool = False, top_n: 
     
     # Step 4: AI 심층 분석 (선택)
     if not skip_ai:
-        logger.info("\n🤖 Step 4/4: AI Deep Investigation...")
+        logger.info("\n🤖 Step 4/6: AI Deep Investigation...")
         ai_args = ['--top', str(top_n)]
         results['ai'] = run_script('investigate_top_stocks.py', ai_args, timeout=600)
     else:
-        logger.info("\n⏭️ Step 4/4: AI Analysis Skipped")
+        logger.info("\n⏭️ Step 4/6: AI Analysis Skipped")
         results['ai'] = None
-    
+
+    # Step 5: 성과 추적 - 추천 저장
+    logger.info("\n📈 Step 5/6: Saving Recommendations to History...")
+    try:
+        from track_performance import PerformanceTracker
+        tracker = PerformanceTracker()
+        saved_file = tracker.save_recommendations()
+        results['tracking'] = bool(saved_file)
+        if saved_file:
+            logger.info(f"   Saved to: {saved_file}")
+    except Exception as e:
+        logger.warning(f"   Performance tracking failed: {e}")
+        results['tracking'] = False
+
+    # Step 6: 알림 전송 (선택)
+    logger.info("\n📢 Step 6/6: Sending Notifications...")
+    try:
+        from notifier import StockNotifier
+        notifier = StockNotifier()
+        if notifier.telegram.is_configured() or notifier.discord.is_configured() or notifier.slack.is_configured():
+            notifier.notify_new_picks()
+            results['notification'] = True
+        else:
+            logger.info("   No notification channels configured (skipped)")
+            results['notification'] = None
+    except Exception as e:
+        logger.warning(f"   Notification failed: {e}")
+        results['notification'] = False
+
     # 요약
     total_elapsed = time.time() - total_start
     
@@ -158,8 +186,9 @@ def run_full_pipeline(quick_update: bool = False, skip_ai: bool = False, top_n: 
     # 다음 단계 안내
     logger.info("\n🎯 Next Steps:")
     logger.info("   1. View results: python -c \"import pandas as pd; print(pd.read_csv('wave_transition_analysis_results.csv').head(20))\"")
-    logger.info("   2. Launch dashboard: streamlit run dashboard/app.py")
-    logger.info("   3. Check AI report: ls -la ai_analysis_report_*.md")
+    logger.info("   2. Launch Flask dashboard: python flask_app.py  # http://localhost:5003")
+    logger.info("   3. Launch Streamlit dashboard: streamlit run dashboard/app.py")
+    logger.info("   4. Check performance: python track_performance.py --report")
     
     return results
 

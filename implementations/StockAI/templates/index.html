@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockAI - 국내 주식 파동 분석</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, #1a2e1a 0%, #0a0a0f 100%);
+            padding: 16px 24px;
+            border-bottom: 1px solid #2a3a2a;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        .logo span {
+            color: #808080;
+            font-weight: 400;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .market-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #1a1a2e;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 13px;
+        }
+
+        /* Main Layout */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Metrics Row */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: #12121a;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #808080;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        .metric-value.warning { color: #facc15; }
+        .metric-value.danger { color: #ef4444; }
+
+        /* Layout Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        /* Cards */
+        .card {
+            background: #12121a;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .card-body {
+            padding: 16px 20px;
+        }
+
+        /* Stock Table */
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stock-table th,
+        .stock-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #2a2a3a;
+        }
+
+        .stock-table th {
+            color: #808080;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .stock-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .stock-table tbody tr:hover {
+            background: #1a2a1a;
+        }
+
+        .stock-table tbody tr.selected {
+            background: #1e3a1e;
+        }
+
+        .ticker-cell {
+            font-weight: 600;
+            color: #4ade80;
+        }
+
+        .name-cell {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .score-cell {
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .grade-S { background: #166534; color: #4ade80; }
+        .grade-A { background: #15803d; color: #86efac; }
+        .grade-B { background: #854d0e; color: #fde047; }
+        .grade-C { background: #78350f; color: #fdba74; }
+        .grade-D { background: #7f1d1d; color: #fca5a5; }
+        .grade-F { background: #991b1b; color: #fecaca; }
+
+        .change-positive { color: #4ade80; }
+        .change-negative { color: #ef4444; }
+
+        /* Chart Section */
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chart-title .ticker {
+            color: #4ade80;
+        }
+
+        .period-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .period-btn {
+            padding: 6px 12px;
+            border: 1px solid #3a4a3a;
+            border-radius: 6px;
+            background: transparent;
+            color: #808080;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .period-btn:hover {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .period-btn.active {
+            background: #4ade80;
+            color: #0a0a0f;
+            border-color: #4ade80;
+        }
+
+        #stock-chart {
+            width: 100%;
+            height: 350px;
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .detail-panel h4 {
+            font-size: 13px;
+            color: #808080;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-item .label {
+            color: #606060;
+            font-size: 13px;
+        }
+
+        .detail-item .value {
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        /* Sidebar Panels */
+        .sidebar-card {
+            background: #12121a;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .sidebar-card .card-header {
+            padding: 12px 16px;
+        }
+
+        .sidebar-card .card-body {
+            padding: 12px 16px;
+        }
+
+        /* Grade Distribution */
+        .grade-dist {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .grade-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .grade-bar .label {
+            width: 40px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .grade-bar .bar {
+            flex: 1;
+            height: 24px;
+            background: #2a2a3a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .grade-bar .bar-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(0,0,0,0.8);
+        }
+
+        /* Performance Stats */
+        .perf-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .perf-item {
+            background: #1a1a2e;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .perf-item .label {
+            font-size: 11px;
+            color: #808080;
+            margin-bottom: 4px;
+        }
+
+        .perf-item .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        /* Search Box */
+        .search-box {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #3a4a3a;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1a1a2e;
+            border: 1px solid #3a4a3a;
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .search-results.hidden {
+            display: none;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #2a2a3a;
+        }
+
+        .search-result-item:hover {
+            background: #2a3a2a;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #808080;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #3a4a3a;
+            border-top-color: #4ade80;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                StockAI <span>국내 주식 파동 분석</span>
+            </div>
+            <div class="market-status" id="market-status">
+                <div class="status-indicator" id="status-indicator"></div>
+                <span class="status-text" id="status-text">Loading...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Metrics Row -->
+        <div class="metrics-row" id="metrics-row">
+            <div class="metric-card">
+                <div class="metric-label">분석 종목</div>
+                <div class="metric-value" id="total-stocks">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">평균 점수</div>
+                <div class="metric-value" id="avg-score">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">S급 종목</div>
+                <div class="metric-value" id="s-grade">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">A급 종목</div>
+                <div class="metric-value" id="a-grade">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">분석일</div>
+                <div class="metric-value" id="analysis-date" style="font-size: 16px;">-</div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Left Panel -->
+            <div class="left-panel">
+                <!-- Search -->
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="종목명 또는 코드 검색...">
+                    <div class="search-results hidden" id="search-results"></div>
+                </div>
+
+                <!-- Stock Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>추천 종목</h2>
+                        <select id="grade-filter" style="background: #1a1a2e; color: #fff; border: 1px solid #3a4a3a; padding: 6px 12px; border-radius: 6px;">
+                            <option value="">전체 등급</option>
+                            <option value="S">S급</option>
+                            <option value="A">A급</option>
+                            <option value="B">B급</option>
+                        </select>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="stock-table">
+                            <thead>
+                                <tr>
+                                    <th>종목코드</th>
+                                    <th>종목명</th>
+                                    <th>점수</th>
+                                    <th>등급</th>
+                                    <th>현재가</th>
+                                    <th>5일</th>
+                                    <th>RSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-table-body">
+                                <tr><td colspan="7" class="loading"><div class="spinner"></div> Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <h3><span class="ticker" id="chart-ticker">종목을 선택하세요</span></h3>
+                            </div>
+                            <div class="period-buttons">
+                                <button class="period-btn" data-period="1mo">1M</button>
+                                <button class="period-btn" data-period="3mo">3M</button>
+                                <button class="period-btn active" data-period="6mo">6M</button>
+                                <button class="period-btn" data-period="1y">1Y</button>
+                            </div>
+                        </div>
+                        <div id="stock-chart"></div>
+                        <div class="detail-panel" id="detail-panel">
+                            <h4>상세 분석</h4>
+                            <div class="detail-grid" id="detail-grid">
+                                <div class="detail-item">
+                                    <span class="label">파동 단계</span>
+                                    <span class="value" id="detail-wave">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">RSI</span>
+                                    <span class="value" id="detail-rsi">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">거래량 비율</span>
+                                    <span class="value" id="detail-volume">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">52주 위치</span>
+                                    <span class="value" id="detail-52w">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">20일 수익률</span>
+                                    <span class="value" id="detail-20d">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">60일 수익률</span>
+                                    <span class="value" id="detail-60d">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="right-panel">
+                <!-- Grade Distribution -->
+                <div class="sidebar-card">
+                    <div class="card-header">
+                        <h2>등급 분포</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="grade-dist" id="grade-dist">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance -->
+                <div class="sidebar-card">
+                    <div class="card-header">
+                        <h2>추천 성과</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="perf-stats" id="perf-stats">
+                            <div class="perf-item">
+                                <div class="label">평균 수익률</div>
+                                <div class="value" id="perf-avg-return">-</div>
+                            </div>
+                            <div class="perf-item">
+                                <div class="label">승률</div>
+                                <div class="value" id="perf-win-rate">-</div>
+                            </div>
+                            <div class="perf-item">
+                                <div class="label">총 추천</div>
+                                <div class="value" id="perf-total">-</div>
+                            </div>
+                            <div class="perf-item">
+                                <div class="label">유효 추천</div>
+                                <div class="value" id="perf-valid">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wave Distribution -->
+                <div class="sidebar-card">
+                    <div class="card-header">
+                        <h2>파동 단계 분포</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="wave-dist">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ============================================
+        // Global State
+        // ============================================
+        let currentTicker = null;
+        let currentPeriod = '6mo';
+        let stockChart = null;
+        let stocksData = [];
+
+        // ============================================
+        // Initialization
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard();
+            setupEventListeners();
+        });
+
+        function initDashboard() {
+            loadSummary();
+            loadRecommendations();
+            loadGradeDistribution();
+            loadWaveDistribution();
+            loadPerformance();
+        }
+
+        function setupEventListeners() {
+            // Period buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentPeriod = btn.dataset.period;
+                    if (currentTicker) loadStockChart(currentTicker, currentPeriod);
+                });
+            });
+
+            // Grade filter
+            document.getElementById('grade-filter').addEventListener('change', (e) => {
+                loadRecommendations(e.target.value);
+            });
+
+            // Search
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+
+            searchInput.addEventListener('input', debounce(async (e) => {
+                const q = e.target.value.trim();
+                if (q.length < 2) {
+                    searchResults.classList.add('hidden');
+                    return;
+                }
+
+                const resp = await fetch(`/api/kr/search?q=${encodeURIComponent(q)}`);
+                const data = await resp.json();
+
+                if (data.results && data.results.length > 0) {
+                    searchResults.innerHTML = data.results.map(r => `
+                        <div class="search-result-item" onclick="selectStock('${r.ticker}')">
+                            <span>${r.ticker} - ${r.name}</span>
+                            <span class="grade-badge grade-${r.grade.charAt(0)}">${r.grade.split(' ')[0]}</span>
+                        </div>
+                    `).join('');
+                    searchResults.classList.remove('hidden');
+                } else {
+                    searchResults.classList.add('hidden');
+                }
+            }, 300));
+
+            // Close search results on click outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-box')) {
+                    searchResults.classList.add('hidden');
+                }
+            });
+        }
+
+        // ============================================
+        // Data Loading
+        // ============================================
+        async function loadSummary() {
+            try {
+                const resp = await fetch('/api/kr/summary');
+                const data = await resp.json();
+
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+
+                document.getElementById('total-stocks').textContent = data.total_stocks.toLocaleString();
+                document.getElementById('avg-score').textContent = data.avg_score;
+                document.getElementById('s-grade').textContent = data.s_grade_count;
+                document.getElementById('a-grade').textContent = data.a_grade_count;
+                document.getElementById('analysis-date').textContent = data.analysis_date;
+
+                // Market status
+                const market = data.market_status;
+                if (market) {
+                    document.getElementById('status-indicator').style.background = market.color;
+                    document.getElementById('status-text').textContent = `${market.status} - ${market.message}`;
+                }
+            } catch (err) {
+                console.error('Error loading summary:', err);
+            }
+        }
+
+        async function loadRecommendations(grade = '') {
+            try {
+                const url = grade ? `/api/kr/recommendations?n=30&grade=${grade}` : '/api/kr/recommendations?n=30';
+                const resp = await fetch(url);
+                const data = await resp.json();
+
+                stocksData = data.picks || [];
+                renderStockTable(stocksData);
+
+                // Auto-select first stock
+                if (stocksData.length > 0 && !currentTicker) {
+                    selectStock(stocksData[0].ticker);
+                }
+            } catch (err) {
+                console.error('Error loading recommendations:', err);
+            }
+        }
+
+        function renderStockTable(stocks) {
+            const tbody = document.getElementById('stock-table-body');
+
+            if (!stocks || stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#808080;">데이터가 없습니다. python run_analysis.py를 실행하세요.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = stocks.map(stock => {
+                const gradeClass = 'grade-' + (stock.grade ? stock.grade.charAt(0) : 'C');
+                const changeClass = stock.price_change_5d >= 0 ? 'change-positive' : 'change-negative';
+
+                return `
+                    <tr data-ticker="${stock.ticker}" onclick="selectStock('${stock.ticker}')">
+                        <td class="ticker-cell">${stock.ticker}</td>
+                        <td class="name-cell" title="${stock.name}">${stock.name}</td>
+                        <td class="score-cell">${stock.score}</td>
+                        <td><span class="grade-badge ${gradeClass}">${stock.grade.split(' ')[0]}</span></td>
+                        <td>${stock.price.toLocaleString()}원</td>
+                        <td class="${changeClass}">${stock.price_change_5d >= 0 ? '+' : ''}${stock.price_change_5d}%</td>
+                        <td>${stock.rsi}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function selectStock(ticker) {
+            currentTicker = ticker;
+
+            // Update table selection
+            document.querySelectorAll('.stock-table tbody tr').forEach(row => {
+                row.classList.toggle('selected', row.dataset.ticker === ticker);
+            });
+
+            // Close search results
+            document.getElementById('search-results').classList.add('hidden');
+            document.getElementById('search-input').value = '';
+
+            // Load stock details
+            const resp = await fetch(`/api/kr/stock/${ticker}`);
+            const stock = await resp.json();
+
+            if (stock.error) {
+                console.error(stock.error);
+                return;
+            }
+
+            // Update chart title
+            document.getElementById('chart-ticker').textContent = `${stock.ticker} ${stock.name}`;
+
+            // Update details
+            document.getElementById('detail-wave').textContent = stock.wave_stage || '-';
+            document.getElementById('detail-rsi').textContent = stock.rsi || '-';
+            document.getElementById('detail-volume').textContent = stock.volume_ratio ? stock.volume_ratio + 'x' : '-';
+            document.getElementById('detail-52w').textContent = stock.position_52w ? stock.position_52w + '%' : '-';
+            document.getElementById('detail-20d').textContent = stock.price_change_20d ? stock.price_change_20d + '%' : '-';
+            document.getElementById('detail-60d').textContent = stock.price_change_60d ? stock.price_change_60d + '%' : '-';
+
+            // Load chart
+            loadStockChart(ticker, currentPeriod);
+        }
+
+        async function loadStockChart(ticker, period) {
+            try {
+                const container = document.getElementById('stock-chart');
+                container.innerHTML = '<div class="loading"><div class="spinner"></div> Loading chart...</div>';
+
+                const resp = await fetch(`/api/kr/chart/${ticker}?period=${period}`);
+                const data = await resp.json();
+
+                if (data.error || !data.candles || data.candles.length === 0) {
+                    container.innerHTML = '<div style="text-align:center;padding:40px;color:#808080;">차트 데이터가 없습니다</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                if (stockChart) {
+                    stockChart.remove();
+                }
+
+                stockChart = LightweightCharts.createChart(container, {
+                    width: container.clientWidth,
+                    height: 350,
+                    layout: {
+                        background: { color: '#12121a' },
+                        textColor: '#808080',
+                    },
+                    grid: {
+                        vertLines: { color: '#2a2a3a' },
+                        horzLines: { color: '#2a2a3a' },
+                    },
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                    },
+                    rightPriceScale: {
+                        borderColor: '#2a2a3a',
+                    },
+                    timeScale: {
+                        borderColor: '#2a2a3a',
+                    },
+                });
+
+                const candleSeries = stockChart.addCandlestickSeries({
+                    upColor: '#4ade80',
+                    downColor: '#ef4444',
+                    borderUpColor: '#4ade80',
+                    borderDownColor: '#ef4444',
+                    wickUpColor: '#4ade80',
+                    wickDownColor: '#ef4444',
+                });
+
+                candleSeries.setData(data.candles);
+                stockChart.timeScale().fitContent();
+
+            } catch (err) {
+                console.error('Error loading chart:', err);
+            }
+        }
+
+        async function loadGradeDistribution() {
+            try {
+                const resp = await fetch('/api/kr/grade-distribution');
+                const data = await resp.json();
+
+                const container = document.getElementById('grade-dist');
+                const dist = data.distribution || [];
+
+                if (dist.length === 0) {
+                    container.innerHTML = '<p style="color:#808080;">데이터 없음</p>';
+                    return;
+                }
+
+                const total = dist.reduce((sum, d) => sum + d.count, 0);
+                const colors = {
+                    'S': '#4ade80', 'A': '#86efac', 'B': '#fde047',
+                    'C': '#fdba74', 'D': '#fca5a5', 'F': '#fecaca'
+                };
+
+                container.innerHTML = dist.map(d => {
+                    const pct = (d.count / total * 100).toFixed(1);
+                    const color = colors[d.grade] || '#808080';
+                    return `
+                        <div class="grade-bar">
+                            <span class="label" style="color:${color}">${d.grade}급</span>
+                            <div class="bar">
+                                <div class="bar-fill" style="width:${pct}%; background:${color}">
+                                    ${d.count}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading grade distribution:', err);
+            }
+        }
+
+        async function loadWaveDistribution() {
+            try {
+                const resp = await fetch('/api/kr/wave-distribution');
+                const data = await resp.json();
+
+                const container = document.getElementById('wave-dist');
+                const dist = data.distribution || [];
+
+                if (dist.length === 0) {
+                    container.innerHTML = '<p style="color:#808080;">데이터 없음</p>';
+                    return;
+                }
+
+                container.innerHTML = dist.slice(0, 6).map(d => `
+                    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2a2a3a;">
+                        <span style="font-size:13px;">${d.stage}</span>
+                        <span style="color:#4ade80; font-weight:600;">${d.count}</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading wave distribution:', err);
+            }
+        }
+
+        async function loadPerformance() {
+            try {
+                const resp = await fetch('/api/kr/performance');
+                const data = await resp.json();
+
+                if (data.stats) {
+                    const s = data.stats;
+                    document.getElementById('perf-avg-return').textContent =
+                        s.avg_return ? `${s.avg_return >= 0 ? '+' : ''}${s.avg_return}%` : '-';
+                    document.getElementById('perf-avg-return').style.color =
+                        s.avg_return >= 0 ? '#4ade80' : '#ef4444';
+
+                    document.getElementById('perf-win-rate').textContent =
+                        s.win_rate ? `${s.win_rate}%` : '-';
+
+                    document.getElementById('perf-total').textContent =
+                        s.total_picks || '-';
+
+                    document.getElementById('perf-valid').textContent =
+                        s.valid_picks || '-';
+                }
+            } catch (err) {
+                console.error('Error loading performance:', err);
+            }
+        }
+
+        // ============================================
+        // Utilities
+        // ============================================
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+    </script>
+</body>
+</html>
